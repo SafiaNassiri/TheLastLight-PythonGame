@@ -1,42 +1,54 @@
 import pygame
+import math
 
 class Shrine:
-    def __init__(self, x, y, radius, total_orbs):
-        self.x = x
-        self.y = y
-        self.radius = radius
-        self.total_orbs = total_orbs
-        self.collected_orbs = 0
-        self.color = (100, 100, 100)  # starts dim gray
-        self.milestones = [0.25, 0.5, 0.75, 1.0]
-        self.triggered_messages = set()
-        self.messages = [
-            "A faint light flickers in the Shrine...",
-            "The Shrine pulses with life again!",
-            "Hope spreads across the land!",
-            "The darkness recedes completely. Light returns!"
-        ]
-        self.font = pygame.font.SysFont(None, 28)
+    def __init__(self, x, y, image_path, max_light):
+        self.image = pygame.image.load(image_path).convert_alpha()
+        self.rect = self.image.get_rect(topleft=(x,y))
+        self.light = 0
+        self.max_light = max_light
+        self.glow_timer = 0
 
-    def collect_orb(self):
-        self.collected_orbs += 1
-        intensity = min(255, int((self.collected_orbs / self.total_orbs) * 255))
-        self.color = (intensity, intensity, 0)  # glowing yellow
+        # Light radius phases
+        self.light_phases = [64, 128, 192]
+        self.phase_index = 0
 
-    def check_milestones(self):
-        messages_to_display = []
-        fraction = self.collected_orbs / self.total_orbs
-        for i, milestone in enumerate(self.milestones):
-            if fraction >= milestone and i not in self.triggered_messages:
-                messages_to_display.append(self.messages[i])
-                self.triggered_messages.add(i)
-        return messages_to_display
+    def add_light(self):
+        self.light += 1
+        if self.light > self.max_light:
+            self.light = self.max_light
+        self.update_phase()
+        self.glow_timer = 30  # glow effect
 
-    # Updated draw method to accept camera offsets
-    def draw(self, screen, camera_x=0, camera_y=0):
-        pygame.draw.circle(screen, self.color, (self.x - camera_x, self.y - camera_y), self.radius)
-        progress_text = self.font.render(f"{self.collected_orbs}/{self.total_orbs}", True, (255, 255, 255))
-        screen.blit(progress_text, (
-            self.x - camera_x - progress_text.get_width() // 2,
-            self.y - camera_y - progress_text.get_height() // 2
-        ))
+    def update_phase(self):
+        # Determine phase based on current light
+        ratio = self.light / self.max_light
+        if ratio <= 0.33:
+            self.phase_index = 0
+        elif ratio <= 0.66:
+            self.phase_index = 1
+        else:
+            self.phase_index = 2
+
+    @property
+    def radius(self):
+        return self.light_phases[self.phase_index]
+
+    def update(self):
+        if self.glow_timer > 0:
+            self.glow_timer -= 1
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect.topleft)
+        if self.glow_timer > 0:
+            alpha = 128 + 127*math.sin(self.glow_timer*0.3)
+            glow = pygame.Surface((self.rect.width,self.rect.height), pygame.SRCALPHA)
+            glow.fill((255,255,200,int(alpha)))
+            surface.blit(glow, self.rect.topleft)
+
+    def draw_light_mask(self, surface):
+        # Draw circular light area
+        mask = pygame.Surface(surface.get_size(), pygame.SRCALPHA)
+        mask.fill((0,0,0,200))  # fog color
+        pygame.draw.circle(mask, (0,0,0,0), self.rect.center, self.radius)
+        surface.blit(mask, (0,0))

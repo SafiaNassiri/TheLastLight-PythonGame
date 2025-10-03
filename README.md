@@ -9,7 +9,7 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
 ## Gameplay
 - Explore a labyrinthine 2D world filled with **enemies, hazards, and secrets**.  
 - Collect **Light Orbs** and return them to the Shrine to expand its protective radius.  
-- Manage a **stamina bar** – sprinting, dashing, and attacking consume stamina, making exploration strategic.  
+- Manage a **stamina bar** – sprinting, dashing, and attacking consume stamina, making exploration strategic.
 - Encounter different **enemy types**:
   - Chasers – fast, fragile, relentless.  
   - Patrol Guards – predictable routes, dangerous in groups.  
@@ -24,14 +24,14 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
 
 ## Features (Planned & Implemented)
 - [x] Basic player movement  
-- [x] Player health + stamina system  
+- [ ] Player health + stamina system  
 - [x] Collectible orbs  
 - [x] Shrine restoration  
-- [ ] Enemy variety (WIP)  
-- [ ] Environmental hazards (WIP)  
-- [ ] Procedural labyrinth generation (planned)  
-- [ ] Mini-shrines and lore objects (planned)  
-- [ ] Final shrine activation animation (planned)  
+- [x] Enemy variety [STRETCH]
+- [x] Environmental hazards [SPIKES]
+- [-] Procedural labyrinth generation 
+- [ ] Mini-shrines and lore objects
+- [ ] Final shrine activation animation  
 
 ## Project Structure
 ```text

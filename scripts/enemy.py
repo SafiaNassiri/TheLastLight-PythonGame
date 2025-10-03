@@ -1,44 +1,62 @@
 import pygame
-import random
-import math
 
 class Enemy:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 40, 40)
-        self.color = (255, 0, 0)
-        self.speed = 2
-        self.detection_radius = 150  # pixels
+    def __init__(self, x, y, sprite_sheet_path, tilemap, speed=2):
+        self.tilemap = tilemap
+        self.speed = speed
+        self.rect = pygame.Rect(x, y, 32, 32)
+        self.frames = []
+        self.load_sprites(sprite_sheet_path)
+        self.current_frame = 0
+        self.frame_timer = 0.15
+        self.dir = 1  # patrol direction
 
-    def move(self, player, walls=[], world_width=2000, world_height=1200):
-        dx = player.rect.centerx - self.rect.centerx
-        dy = player.rect.centery - self.rect.centery
-        distance = math.hypot(dx, dy)
+    def load_sprites(self, path):
+        sheet = pygame.image.load(path).convert_alpha()
+        frame_count = 4
+        w = sheet.get_width() // frame_count
+        h = sheet.get_height()
+        for i in range(frame_count):
+            self.frames.append(sheet.subsurface(pygame.Rect(i*w,0,w,h)))
 
-        if distance < self.detection_radius and distance != 0:
-            # Move toward player
-            self.rect.x += int(self.speed * dx / distance)
-            self.rect.y += int(self.speed * dy / distance)
+    def update(self, player_rect, chase_radius=100):
+        dx = player_rect.centerx - self.rect.centerx
+        dy = player_rect.centery - self.rect.centery
+        dist = (dx**2 + dy**2)**0.5
+
+        if dist < chase_radius:
+            move_x = self.speed if dx > 0 else -self.speed
+            move_y = self.speed if dy > 0 else -self.speed
+            self.move(move_x, move_y)
         else:
-            # Random movement
-            self.rect.x += random.choice([-1,0,1]) * self.speed
-            self.rect.y += random.choice([-1,0,1]) * self.speed
+            self.move(self.speed*self.dir, 0)
 
-        # Collisions with walls
-        for wall in walls:
-            if self.rect.colliderect(wall):
-                if dx > 0: self.rect.right = wall.left
-                elif dx < 0: self.rect.left = wall.right
-                if dy > 0: self.rect.bottom = wall.top
-                elif dy < 0: self.rect.top = wall.bottom
+    def move(self, dx, dy):
+        self.rect.x += dx
+        if self.collides_with_tile():
+            self.rect.x -= dx
+            self.dir *= -1
+        self.rect.y += dy
+        if self.collides_with_tile():
+            self.rect.y -= dy
 
-        # Keep enemy inside world bounds
-        self.rect.x = max(0, min(self.rect.x, world_width - self.rect.width))
-        self.rect.y = max(0, min(self.rect.y, world_height - self.rect.height))
+        if dx != 0 or dy != 0:
+            self.update_animation()
 
-    def draw(self, screen, camera_x=0, camera_y=0):
-        pygame.draw.rect(screen, self.color, pygame.Rect(
-            self.rect.x - camera_x,
-            self.rect.y - camera_y,
-            self.rect.width,
-            self.rect.height
-        ))
+    def update_animation(self):
+        self.frame_timer -= 1/60
+        if self.frame_timer <= 0:
+            self.current_frame = (self.current_frame + 1) % len(self.frames)
+            self.frame_timer = 0.15
+
+    def collides_with_tile(self):
+        for y,row in enumerate(self.tilemap.tiles):
+            for x,tile_id in enumerate(row):
+                if tile_id is not None:
+                    tile_rect = pygame.Rect(x*self.tilemap.tile_size, y*self.tilemap.tile_size,
+                                            self.tilemap.tile_size, self.tilemap.tile_size)
+                    if self.rect.colliderect(tile_rect): return True
+        return False
+
+    def draw(self, surface):
+        surface.blit(self.frames[self.current_frame], self.rect.topleft)
