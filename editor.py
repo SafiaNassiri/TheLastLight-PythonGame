@@ -10,17 +10,35 @@ pygame.display.set_caption("Map Editor")
 font = pygame.font.SysFont(None, 20)
 
 # -----------------------------
-# Camera
+# Camera & zoom
 camera_x, camera_y = 0, 0
 CAMERA_SPEED = 10
 zoom = 1.0  # initial zoom
 
 # -----------------------------
-# Map storage
-tiles = [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)]
+# Map layers
+layers = {
+    "wall": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)],
+    "floor": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)],
+    "stairs/gateways": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)],
+    "props": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)],
+    "shrines": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)],
+    "spawnpoints": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)],
+    "plants": [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)]
+}
+layer_order = ["floor","wall","stairs/gateways","props","shrines","plants","spawnpoints"]
+current_layer = "floor"
+
+spawn_marker_colors = {
+    "player": (0, 255, 0, 128),
+    "goblin": (255, 0, 0, 128),
+    "treasure": (0, 0, 255, 128)
+}
+placing_spawn = False
+selected_spawn_type = "player"
 
 # -----------------------------
-# Tile name mapping (optional)
+# Tile name mapping
 tile_name_map = {
     "TX Plant.png": "Plant",
     "TX Struct.png": "Stairs",
@@ -48,18 +66,24 @@ def load_sheets(base_dir="assets/tiles"):
             except Exception as e:
                 print("Failed to load", full, e)
                 continue
+
+            # Pick tile size per sheet (default 32)
+            tile_size = sheet_configs.get(fname, 32)
+
             sheet_tiles = []
-            for y in range(0, img.get_height(), TILE_SIZE):
-                for x in range(0, img.get_width(), TILE_SIZE):
-                    sub = img.subsurface(pygame.Rect(x, y, TILE_SIZE, TILE_SIZE)).copy()
+            for y in range(0, img.get_height(), tile_size):
+                for x in range(0, img.get_width(), tile_size):
+                    sub = img.subsurface(pygame.Rect(x, y, tile_size, tile_size)).copy()
                     if pygame.mask.from_surface(sub).count() > 0:
                         sheet_tiles.append(sub)
+
             if sheet_tiles:
                 sheets.append({
                     "path": full,
                     "basename": fname,
                     "display_name": get_tile_name(fname),
-                    "tiles": sheet_tiles
+                    "tiles": sheet_tiles,
+                    "tile_size": tile_size
                 })
     return sheets
 
@@ -70,6 +94,29 @@ if not sheets:
 print("Loaded sheets:")
 for i, s in enumerate(sheets):
     print(i, "-", s["basename"], "->", s["display_name"], f"({len(s['tiles'])} tiles)")
+
+# -----------------------------
+# Load sparse map from JSON if it exists
+def load_map_sparse(filename="map.json"):
+    if not os.path.exists(filename):
+        return  # nothing to load
+    with open(filename, "r") as f:
+        data = json.load(f)
+    print(f"Loaded map from {filename}!")
+
+    # Reset layers
+    for lname in layers:
+        layers[lname] = [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)]
+
+    for lname, tiles in data.get("layers", {}).items():
+        for t in tiles:
+            x, y = t["x"], t["y"]
+            if 0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT:
+                if lname == "spawnpoints":
+                    layers[lname][y][x] = t["type"]
+                else:
+                    layers[lname][y][x] = {"sheet": t["sheet"], "id": t["id"]}
+load_map_sparse()
 
 # -----------------------------
 # Hotkeys for quick sheet switching
@@ -88,16 +135,39 @@ selected_tile = 0
 # -----------------------------
 # Help text
 help_lines = [
-    "[1..5] Switch sheet (Plant, Stairs, Grass, Wall, Stone)",
+    "[1..5] Switch sheet",
     "[A/W/S/D] Move camera",
     "[Mouse wheel] Zoom in/out",
     "[Z] Reset zoom | [R] Recenter camera",
+    "[T] Toggle spawn placement | [Y] Cycle spawn type",
+    "[L] Switch layer",
     "[[ / ]] Cycle tiles",
     "[C] Next sheet",
-    "Left Click: Place tile",
-    "Right Click: Erase tile",
+    "Left Click: Place tile/spawn",
+    "Right Click: Erase",
     "[P] Save map"
 ]
+
+# -----------------------------
+# Sparse save function
+def save_map_sparse(filename="map.json"):
+    map_data = {"width": MAP_WIDTH, "height": MAP_HEIGHT, "layers": {}}
+    for lname, layer in layers.items():
+        map_data["layers"][lname] = []
+        for y, row in enumerate(layer):
+            for x, tile in enumerate(row):
+                if tile is not None:
+                    if lname == "spawnpoints":
+                        map_data["layers"][lname].append({"x": x, "y": y, "type": tile})
+                    else:
+                        map_data["layers"][lname].append({
+                            "x": x, "y": y,
+                            "sheet": tile["sheet"],
+                            "id": tile["id"]
+                        })
+    with open(filename, "w") as f:
+        json.dump(map_data, f, indent=4)
+    print(f"Map saved as {filename}!")
 
 # -----------------------------
 # Main loop
@@ -105,13 +175,14 @@ running = True
 clock = pygame.time.Clock()
 
 while running:
-    dt = clock.tick(60) / 1000  # delta time for smooth movement
+    dt = clock.tick(60) / 1000
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
         elif event.type == pygame.KEYDOWN:
+
             # Cycle tiles
             if event.key == pygame.K_LEFTBRACKET:
                 selected_tile = (selected_tile - 1) % len(tileset)
@@ -142,19 +213,31 @@ while running:
             elif event.key == pygame.K_r:
                 camera_x, camera_y = 0, 0
 
+            # Toggle spawn placement
+            elif event.key == pygame.K_t:
+                placing_spawn = not placing_spawn
+                current_layer = "spawnpoints" if placing_spawn else "floor"
+                print("Spawn placement:", placing_spawn)
+
+            # Cycle spawn type
+            elif event.key == pygame.K_y:
+                types = list(spawn_marker_colors.keys())
+                idx = types.index(selected_spawn_type)
+                selected_spawn_type = types[(idx + 1) % len(types)]
+                print("Selected spawn type:", selected_spawn_type)
+
+            # Switch active layer
+            elif event.key == pygame.K_l:
+                idx = layer_order.index(current_layer)
+                current_layer = layer_order[(idx + 1) % len(layer_order)]
+                placing_spawn = (current_layer == "spawnpoints")
+                print("Active layer:", current_layer)
+
             # Save map
             elif event.key == pygame.K_p:
-                map_data = {
-                    "width": MAP_WIDTH,
-                    "height": MAP_HEIGHT,
-                    "tiles": tiles
-                }
-                with open("map.json", "w") as f:
-                    json.dump(map_data, f, indent=4)
-                print("Map saved!")
+                save_map_sparse()
 
         elif event.type == pygame.MOUSEWHEEL:
-            # Zoom in/out
             if event.y > 0:
                 zoom = min(2.0, zoom + 0.1)
             else:
@@ -173,29 +256,39 @@ while running:
     tx, ty = int((mx + camera_x) / (TILE_SIZE*zoom)), int((my + camera_y) / (TILE_SIZE*zoom))
     if 0 <= tx < MAP_WIDTH and 0 <= ty < MAP_HEIGHT:
         if mleft:
-            tiles[ty][tx] = {"sheet": sheets[current_sheet]["path"], "id": selected_tile}
+            if current_layer == "spawnpoints":
+                layers["spawnpoints"][ty][tx] = selected_spawn_type
+            else:
+                layers[current_layer][ty][tx] = {"sheet": sheets[current_sheet]["path"], "id": selected_tile}
         elif mright:
-            tiles[ty][tx] = None
+            layers[current_layer][ty][tx] = None
 
     # -----------------------------
     # Draw
     screen.fill((30,30,30))
 
-    # Draw placed tiles
-    for y, row in enumerate(tiles):
-        for x, t in enumerate(row):
-            if t is None:
-                continue
-            sheet_path = t["sheet"]
-            tile_id = t["id"]
-            sheet_obj = None
-            for s in sheets:
-                if os.path.basename(s["path"]) == os.path.basename(sheet_path):
-                    sheet_obj = s
-                    break
-            if sheet_obj and 0 <= tile_id < len(sheet_obj["tiles"]):
-                img = pygame.transform.scale(sheet_obj["tiles"][tile_id], (int(TILE_SIZE*zoom), int(TILE_SIZE*zoom)))
-                screen.blit(img, (x*TILE_SIZE*zoom - camera_x, y*TILE_SIZE*zoom - camera_y))
+    for lname in layer_order:
+        layer = layers[lname]
+        for y, row in enumerate(layer):
+            for x, t in enumerate(row):
+                if t is None:
+                    continue
+                if lname == "spawnpoints":
+                    color = spawn_marker_colors[t]
+                    rect = pygame.Surface((TILE_SIZE*zoom, TILE_SIZE*zoom), pygame.SRCALPHA)
+                    rect.fill(color)
+                    screen.blit(rect, (x*TILE_SIZE*zoom - camera_x, y*TILE_SIZE*zoom - camera_y))
+                else:
+                    sheet_path = t["sheet"]
+                    tile_id = t["id"]
+                    sheet_obj = None
+                    for s in sheets:
+                        if os.path.basename(s["path"]) == os.path.basename(sheet_path):
+                            sheet_obj = s
+                            break
+                    if sheet_obj and 0 <= tile_id < len(sheet_obj["tiles"]):
+                        img = pygame.transform.scale(sheet_obj["tiles"][tile_id], (int(TILE_SIZE*zoom), int(TILE_SIZE*zoom)))
+                        screen.blit(img, (x*TILE_SIZE*zoom - camera_x, y*TILE_SIZE*zoom - camera_y))
 
     # Draw grid
     view_w, view_h = screen.get_size()
@@ -213,7 +306,9 @@ while running:
 
     # UI
     sheet = sheets[current_sheet]
-    ui_text = f"Sheet: {sheet['basename']} ({sheet['display_name']}) | Tile {selected_tile+1}/{len(tileset)} | Zoom: {zoom:.2f}"
+    ui_text = f"Layer: {current_layer} | Sheet: {sheet['basename']} ({sheet['display_name']}) | Tile {selected_tile+1}/{len(tileset)} | Zoom: {zoom:.2f}"
+    if placing_spawn:
+        ui_text += f" | Spawn mode: {selected_spawn_type}"
     screen.blit(font.render(ui_text, True, (255,255,255)), (10, 8))
 
     # Preview bottom-right
