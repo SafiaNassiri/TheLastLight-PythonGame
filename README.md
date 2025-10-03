@@ -23,26 +23,38 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
   - Music layers in new instruments as you restore more orbs.  
 
 ## Features (Planned & Implemented)
-- [x] Basic player movement  
+- [x] Craete an editor.py for drawing Maps
+- [ ] Basic player movement  
 - [ ] Player health + stamina system  
-- [x] Collectible orbs  
-- [x] Shrine restoration  
-- [x] Enemy variety [STRETCH]
-- [x] Environmental hazards [SPIKES]
-- [-] Procedural labyrinth generation 
+- [ ] Collectible orbs  
+- [ ] Shrine restoration  
+- [ ] Enemy variety [STRETCH]
+- [ ] Environmental hazards [SPIKES]
+- [ ] Procedural labyrinth generation 
 - [ ] Mini-shrines and lore objects
 - [ ] Final shrine activation animation  
 
 ## Project Structure
 ```text
 TheLastLight/
-├── assets/
+├── asstes/
+│   ├── entities/
+│   │   ├── Knight/
+│   │   ├── Orb/
+│   │   ├── Satyr/
+│   │   ├── Skeleton/
+│   ├── sounds/
+│   ├──tiles/
+│   │   ├── Environment/
+│   │   ├── Props/
+├── scripts/
+│   ├── _pycache_/
 │   ├── enemy.py
 │   ├── orb.py
 │   ├── player.py
 │   ├── shrine.py
-│   ├── maze.py
-│   └── hazard.py
+│   ├── Tilemap.py
+├── editor.py
 ├── main.py
 └── README.md
 ```
