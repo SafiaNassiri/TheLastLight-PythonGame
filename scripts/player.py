@@ -1,56 +1,80 @@
-import pygame
+import pygame, os
 
-class Player:
-    def __init__(self, x, y, sprite_sheet_path, tilemap, speed=4):
+class Player(pygame.sprite.Sprite):
+    def __init__(self, x, y, sprite_sheet, tilemap):
+        super().__init__()
         self.tilemap = tilemap
-        self.speed = speed
-        self.rect = pygame.Rect(x, y, 32, 32)
-        self.frames = []
-        self.load_sprites(sprite_sheet_path)
-        self.current_frame = 0
-        self.frame_timer = 0.1  # seconds per frame
+        self.sprite_sheet_path = os.path.join("assets", "entities", "Player", "Satyr", sprite_sheet)
+        self.sheet = pygame.image.load(self.sprite_sheet_path).convert_alpha()
 
-    def load_sprites(self, path):
-        sheet = pygame.image.load(path).convert_alpha()
-        frame_count = 4  # horizontal strip
-        frame_width = sheet.get_width() // frame_count
-        frame_height = sheet.get_height()
-        for i in range(frame_count):
-            frame = sheet.subsurface(pygame.Rect(i*frame_width, 0, frame_width, frame_height))
-            self.frames.append(frame)
+        # animation setup
+        self.animations = self.load_animations()
+        self.current_animation = "idle"
+        self.current_frame = 0
+        self.frame_timer = 0
+        self.frame_duration = 0.1  # seconds per frame
+
+        self.image = self.animations[self.current_animation][0]
+        self.rect = self.image.get_rect(topleft=(x, y))
+
+        self.speed = 150
+        self.dx = 0
+        self.dy = 0
+
+    def load_animations(self):
+        sheet = self.sheet
+        w, h = sheet.get_size()
+        rows = 8
+        frame_height = h // rows
+
+        # Correct frame counts for each row (from your asset description)
+        anim_data = {
+            "idle": 6,
+            "run": 8,
+            "jump": 3,
+            "fall": 3,
+            "hurt": 4,
+            "dead": 9,
+            "stop": 3,
+            "dash": 6
+        }
+
+        animations = {}
+        y = 0
+        for name, frame_count in anim_data.items():
+            frames = []
+            frame_width = w // frame_count  # only for this row
+            for i in range(frame_count):
+                rect = pygame.Rect(i * frame_width, y, frame_width, frame_height)
+                frames.append(sheet.subsurface(rect))
+            animations[name] = frames
+            y += frame_height
+        return animations
 
     def handle_input(self):
         keys = pygame.key.get_pressed()
-        dx = dy = 0
-        if keys[pygame.K_a]: dx = -self.speed
-        if keys[pygame.K_d]: dx = self.speed
-        if keys[pygame.K_w]: dy = -self.speed
-        if keys[pygame.K_s]: dy = self.speed
-        self.move(dx, dy)
+        self.dx = (keys[pygame.K_d] - keys[pygame.K_a]) * self.speed
+        self.dy = (keys[pygame.K_s] - keys[pygame.K_w]) * self.speed
 
-    def move(self, dx, dy):
-        self.rect.x += dx
-        if self.collides_with_tile(): self.rect.x -= dx
-        self.rect.y += dy
-        if self.collides_with_tile(): self.rect.y -= dy
+        new_animation = "run" if self.dx != 0 or self.dy != 0 else "idle"
+        if new_animation != self.current_animation:
+            self.current_animation = new_animation
+            self.current_frame = 0
+            self.frame_timer = 0
 
-        if dx != 0 or dy != 0:
-            self.update_animation()
+    def update(self, dt):
+        self.rect.x += self.dx * dt
+        self.rect.y += self.dy * dt
 
-    def update_animation(self):
-        self.frame_timer -= 1/60
-        if self.frame_timer <= 0:
-            self.current_frame = (self.current_frame + 1) % len(self.frames)
-            self.frame_timer = 0.1
+        # Animation timing
+        self.frame_timer += dt
+        if self.frame_timer >= self.frame_duration:
+            self.frame_timer = 0
+            frames = self.animations[self.current_animation]
+            self.current_frame = (self.current_frame + 1) % len(frames)
+            self.image = frames[self.current_frame]
 
-    def collides_with_tile(self):
-        for y,row in enumerate(self.tilemap.tiles):
-            for x,tile_id in enumerate(row):
-                if tile_id is not None:
-                    tile_rect = pygame.Rect(x*self.tilemap.tile_size, y*self.tilemap.tile_size,
-                                            self.tilemap.tile_size, self.tilemap.tile_size)
-                    if self.rect.colliderect(tile_rect): return True
-        return False
-
-    def draw(self, surface):
-        surface.blit(self.frames[self.current_frame], self.rect.topleft)
+    def draw(self, surf, camera_x=0, camera_y=0):
+        # Draw the player relative to the camera
+        draw_pos = self.rect.move(-camera_x, -camera_y)
+        surf.blit(self.image, draw_pos)

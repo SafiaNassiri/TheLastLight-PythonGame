@@ -1,62 +1,98 @@
-import pygame
+import pygame, os, math, random
 
-class Enemy:
-    def __init__(self, x, y, sprite_sheet_path, tilemap, speed=2):
+class Enemy(pygame.sprite.Sprite):
+    def __init__(self, x, y, enemy_type, tilemap, path_id=None):
+        super().__init__()
+        self.enemy_type = enemy_type
         self.tilemap = tilemap
-        self.speed = speed
-        self.rect = pygame.Rect(x, y, 32, 32)
-        self.frames = []
-        self.load_sprites(sprite_sheet_path)
-        self.current_frame = 0
-        self.frame_timer = 0.15
-        self.dir = 1  # patrol direction
+        self.path_id = path_id
+        self.load_sprites()
+        self.image = self.idle_frames[0]
+        self.rect = self.image.get_rect(topleft=(x, y))
+        self.frame_index = 0
+        self.anim_speed = 6
+        self.timer = 0
 
-    def load_sprites(self, path):
-        sheet = pygame.image.load(path).convert_alpha()
-        frame_count = 4
-        w = sheet.get_width() // frame_count
-        h = sheet.get_height()
-        for i in range(frame_count):
-            self.frames.append(sheet.subsurface(pygame.Rect(i*w,0,w,h)))
+        # Behavior
+        self.player_detect_range = 64  # pixels
+        self.attack_cooldown = 1.5
+        self.attack_timer = 0
+        self.speed = 50 if enemy_type == "Skeleton" else 0
+        self.state = "idle"
 
-    def update(self, player_rect, chase_radius=100):
+        # For patrolling Skeletons
+        self.path_points = self.get_path_points(path_id)
+        self.path_index = 0
+        self.direction = 1
+
+    def load_sprites(self):
+        base_path = os.path.join("assets", "entities", "Enemies", self.enemy_type)
+        if self.enemy_type == "Knight":
+            self.idle_frames = [pygame.image.load(os.path.join(base_path, "KnightIdle_strip.png")).convert_alpha()]
+            self.attack_frames = [pygame.image.load(os.path.join(base_path, "KnightAttack_strip.png")).convert_alpha()]
+        elif self.enemy_type == "Skeleton":
+            self.idle_frames = [pygame.image.load(os.path.join(base_path, "Skeleton Idle.png")).convert_alpha()]
+            self.walk_frames = [pygame.image.load(os.path.join(base_path, "Skeleton Walk.png")).convert_alpha()]
+            self.attack_frames = [pygame.image.load(os.path.join(base_path, "Skeleton Attack.png")).convert_alpha()]
+
+    def get_path_points(self, path_id):
+        if path_id is None: return []
+        # Hardcode or later load from map.json or editor
+        paths = {
+            1: [(10, 15), (15, 15)],
+            2: [(5, 20), (8, 20), (5, 20)],
+            3: [(12, 10), (12, 13)]
+        }
+        return paths.get(path_id, [])
+
+    def update(self, player_rect, dt):
+        self.timer += dt
+        self.attack_timer = max(0, self.attack_timer - dt)
+
+        # Calculate distance to player
         dx = player_rect.centerx - self.rect.centerx
         dy = player_rect.centery - self.rect.centery
-        dist = (dx**2 + dy**2)**0.5
+        dist = math.hypot(dx, dy)
 
-        if dist < chase_radius:
-            move_x = self.speed if dx > 0 else -self.speed
-            move_y = self.speed if dy > 0 else -self.speed
-            self.move(move_x, move_y)
+        if self.enemy_type == "Knight":
+            # Stationary, attacks if near
+            if dist < self.player_detect_range and self.attack_timer <= 0:
+                self.attack()
+        elif self.enemy_type == "Skeleton":
+            if dist < self.player_detect_range * 2:
+                self.chase(player_rect, dt)
+            else:
+                self.patrol(dt)
+
+    def attack(self):
+        self.state = "attack"
+        self.attack_timer = self.attack_cooldown
+        self.image = self.attack_frames[0]
+
+    def chase(self, player_rect, dt):
+        self.state = "chase"
+        direction = pygame.Vector2(player_rect.centerx - self.rect.centerx, player_rect.centery - self.rect.centery).normalize()
+        self.rect.x += direction.x * self.speed * dt
+        self.rect.y += direction.y * self.speed * dt
+        self.image = self.walk_frames[0]
+
+    def patrol(self, dt):
+        if not self.path_points: 
+            self.image = self.idle_frames[0]
+            return
+        target = pygame.Vector2(self.path_points[self.path_index][0] * 32,
+                                self.path_points[self.path_index][1] * 32)
+        current = pygame.Vector2(self.rect.topleft)
+        if current.distance_to(target) < 5:
+            self.path_index += self.direction
+            if self.path_index >= len(self.path_points) or self.path_index < 0:
+                self.direction *= -1
+                self.path_index += self.direction
         else:
-            self.move(self.speed*self.dir, 0)
+            move_dir = (target - current).normalize()
+            self.rect.x += move_dir.x * self.speed * dt
+            self.rect.y += move_dir.y * self.speed * dt
+            self.image = self.walk_frames[0]
 
-    def move(self, dx, dy):
-        self.rect.x += dx
-        if self.collides_with_tile():
-            self.rect.x -= dx
-            self.dir *= -1
-        self.rect.y += dy
-        if self.collides_with_tile():
-            self.rect.y -= dy
-
-        if dx != 0 or dy != 0:
-            self.update_animation()
-
-    def update_animation(self):
-        self.frame_timer -= 1/60
-        if self.frame_timer <= 0:
-            self.current_frame = (self.current_frame + 1) % len(self.frames)
-            self.frame_timer = 0.15
-
-    def collides_with_tile(self):
-        for y,row in enumerate(self.tilemap.tiles):
-            for x,tile_id in enumerate(row):
-                if tile_id is not None:
-                    tile_rect = pygame.Rect(x*self.tilemap.tile_size, y*self.tilemap.tile_size,
-                                            self.tilemap.tile_size, self.tilemap.tile_size)
-                    if self.rect.colliderect(tile_rect): return True
-        return False
-
-    def draw(self, surface):
-        surface.blit(self.frames[self.current_frame], self.rect.topleft)
+    def draw(self, surf):
+        surf.blit(self.image, self.rect)

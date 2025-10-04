@@ -15,7 +15,6 @@ class Orb:
         return False
 
     def update(self):
-        # simple float animation
         self.float_timer += 0.05
         self.offset_y = math.sin(self.float_timer) * 4
 

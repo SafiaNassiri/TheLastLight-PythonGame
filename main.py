@@ -1,7 +1,4 @@
-# main.py
 import pygame
-import json
-import math
 from scripts.Tilemap import TileMap
 from scripts.player import Player
 from scripts.orb import Orb
@@ -9,8 +6,9 @@ from scripts.shrine import Shrine
 from scripts.enemy import Enemy
 
 pygame.init()
-SCREEN_WIDTH, SCREEN_HEIGHT = 640, 480
+SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("The Last Light")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)
 
@@ -23,20 +21,29 @@ shrine = None
 orbs = []
 enemies = []
 
-spawn_layer = tilemap.layers.get("spawn", [])
-for y, row in enumerate(spawn_layer):
-    for x, tile in enumerate(row):
-        if tile is None:
-            continue
-        world_x, world_y = x * tilemap.tile_size, y * tilemap.tile_size
-        if tile == "player":
-            player = Player(world_x, world_y, "player_spritesheet.png", tilemap)
-        elif tile == "goblin":
-            enemies.append(Enemy(world_x, world_y, "enemy_spritesheet.png", tilemap))
-        elif tile == "treasure":
-            orbs.append(Orb(world_x, world_y, "orb.png"))
-        elif tile == "shrine":
-            shrine = Shrine(world_x, world_y, "shrine.png", max_light=5)
+spawn_layer = tilemap.layers.get("spawnpoints", [])
+print("Spawn layer tiles:", spawn_layer)
+
+for tile in spawn_layer:
+    x, y = tile["x"], tile["y"]
+    tile_type = tile["type"].lower()
+    world_x, world_y = x * tilemap.tile_size, y * tilemap.tile_size
+
+    if tile_type == "player":
+        player = Player(world_x, world_y, "satiro-Sheet v1.1.png", tilemap)
+    elif tile_type == "knight":
+        enemies.append(Enemy(world_x, world_y, "Knight", tilemap))
+    elif tile_type == "skeleton":
+        enemies.append(Enemy(world_x, world_y, "Skeleton", tilemap, path_id=tile.get("path_id")))
+    elif tile_type == "shrine":
+        shrine = Shrine(world_x, world_y, "shrine.png", max_light=5)
+
+if player is None:
+    raise RuntimeError("No player spawn found in map!")
+
+# ----- CAMERA -----
+camera_x = 0
+camera_y = 0
 
 # ----- GAME LOOP -----
 running = True
@@ -44,62 +51,52 @@ messages = []
 message_timer = 0
 
 while running:
-    dt = clock.tick(60)/1000
+    dt = clock.tick(60) / 1000  # delta time in seconds
+
+    # ----- EVENT HANDLING -----
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    # ----- HANDLE PLAYER INPUT -----
-    keys = pygame.key.get_pressed()
-    dx = dy = 0
-    if keys[pygame.K_a]: dx = -player.speed
-    if keys[pygame.K_d]: dx = player.speed
-    if keys[pygame.K_w]: dy = -player.speed
-    if keys[pygame.K_s]: dy = player.speed
-
-    # Tentative move
-    new_x = player.rect.x + dx
-    new_y = player.rect.y + dy
-
-    # Distance to shrine (if exists)
-    if shrine:
-        dist_to_shrine = math.hypot((new_x + player.rect.width/2) - shrine.rect.centerx,
-                                    (new_y + player.rect.height/2) - shrine.rect.centery)
-        if dist_to_shrine <= shrine.radius:
-            player.rect.x = new_x
-            player.rect.y = new_y
-    else:
-        player.rect.x = new_x
-        player.rect.y = new_y
-
     # ----- UPDATE ENTITIES -----
+    player.handle_input()
+    player.update(dt)
+
     for enemy in enemies:
         enemy.update(player.rect)
+
     for orb in orbs:
         orb.update()
-        if orb.check_collision(player.rect) and shrine:
+        if not orb.collected and orb.check_collision(player.rect) and shrine:
             shrine.add_light()
             messages.append(f"Shrine light: {shrine.light}/{shrine.max_light}")
             message_timer = 180
+
     if shrine:
         shrine.update()
 
+    # ----- CAMERA UPDATE -----
+    camera_x = player.rect.centerx - SCREEN_WIDTH // 2
+    camera_y = player.rect.centery - SCREEN_HEIGHT // 2
+    # Clamp camera to map bounds
+    camera_x = max(0, min(camera_x, tilemap.width * tilemap.tile_size - SCREEN_WIDTH))
+    camera_y = max(0, min(camera_y, tilemap.height * tilemap.tile_size - SCREEN_HEIGHT))
+
     # ----- DRAW -----
-    screen.fill((20, 20, 20))
-    tilemap.draw(screen)
+    screen.fill((25, 25, 25))
 
+    # Draw map and entities with camera offset
+    tilemap.draw(screen, camera_x, camera_y)
     if shrine:
-        shrine.draw(screen)
+        shrine.draw(screen, camera_x, camera_y)
     for orb in orbs:
-        orb.draw(screen)
+        orb.draw(screen, camera_x, camera_y)
     for enemy in enemies:
-        enemy.draw(screen)
-    if player:
-        player.draw(screen)
+        enemy.draw(screen, camera_x, camera_y)
+    player.draw(screen, camera_x, camera_y)
 
-    # Draw fog-of-war / light radius
     if shrine:
-        shrine.draw_light_mask(screen)
+        shrine.draw_light_mask(screen, camera_x, camera_y)
 
     # Draw messages
     if messages and message_timer > 0:
