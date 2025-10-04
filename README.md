@@ -63,3 +63,4 @@ TheLastLight/
  - Hollow Knight – exploration + atmosphere
  - Don’t Starve – survival tension and darkness mechanics
  - Dark Souls – shrine/light as safe zones and progress markers
+ - OneShot - game setting concept
