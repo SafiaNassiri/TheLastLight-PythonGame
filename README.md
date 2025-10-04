@@ -23,7 +23,7 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
   - Music layers in new instruments as you restore more orbs.  
 
 ## Features (Planned & Implemented)
-- [x] Craete an editor.py for drawing Maps
+- [x] Create an editor.py for drawing Maps
 - [ ] Basic player movement  
 - [ ] Player health + stamina system  
 - [ ] Collectible orbs  
