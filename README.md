@@ -24,15 +24,12 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
 
 ## Features (Planned & Implemented)
 - [x] Create an editor.py for drawing Maps
-- [ ] Basic player movement  
+- [x] Basic player movement  
 - [ ] Player health + stamina system  
 - [ ] Collectible orbs  
 - [ ] Shrine restoration  
 - [ ] Enemy variety [STRETCH]
-- [ ] Environmental hazards [SPIKES]
-- [ ] Procedural labyrinth generation 
-- [ ] Mini-shrines and lore objects
-- [ ] Final shrine activation animation  
+- [ ] Mini-shrines and lore objects [STRETCH]
 
 ## Project Structure
 ```text
