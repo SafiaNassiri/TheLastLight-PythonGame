@@ -23,16 +23,13 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
   - Music layers in new instruments as you restore more orbs.  
 
 ## Features (Planned & Implemented)
-- [x] Craete an editor.py for drawing Maps
-- [ ] Basic player movement  
+- [x] Create an editor.py for drawing Maps
+- [x] Basic player movement  
 - [ ] Player health + stamina system  
 - [ ] Collectible orbs  
 - [ ] Shrine restoration  
 - [ ] Enemy variety [STRETCH]
-- [ ] Environmental hazards [SPIKES]
-- [ ] Procedural labyrinth generation 
-- [ ] Mini-shrines and lore objects
-- [ ] Final shrine activation animation  
+- [ ] Mini-shrines and lore objects [STRETCH]
 
 ## Project Structure
 ```text
@@ -63,3 +60,4 @@ TheLastLight/
  - Hollow Knight – exploration + atmosphere
  - Don’t Starve – survival tension and darkness mechanics
  - Dark Souls – shrine/light as safe zones and progress markers
+ - OneShot - game setting concept
