@@ -93,7 +93,7 @@ class ShrineManager:
                 else:
                     message_manager.add_message("All orbs collected! The Main Shrine awakens and the world is restored!")
                     pygame.display.flip()
-                    pygame.time.wait(2000)
+                    pygame.time.wait(1000)
                     pygame.quit()
                     sys.exit()
             self.main_shrine_player_inside = colliding
