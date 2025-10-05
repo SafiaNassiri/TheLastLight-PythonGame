@@ -23912,6 +23912,12 @@
                 "id": 23
             },
             {
+                "x": 11,
+                "y": 83,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 70
+            },
+            {
                 "x": 14,
                 "y": 84,
                 "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
@@ -23924,13 +23930,7 @@
                 "id": 103
             }
         ],
-        "main_shrine_marker": [
-            {
-                "x": 78,
-                "y": 6,
-                "type": "main_shrine"
-            }
-        ],
+        "main_shrine_marker": [],
         "spawner": [
             {
                 "x": 13,
@@ -24139,38 +24139,6 @@
                 "x": 14,
                 "y": 81,
                 "type": "player"
-            }
-        ],
-        "shrine_logic": [
-            {
-                "x": 25,
-                "y": 14,
-                "type": "shrine"
-            },
-            {
-                "x": 47,
-                "y": 66,
-                "type": "shrine"
-            },
-            {
-                "x": 81,
-                "y": 77,
-                "type": "shrine"
-            },
-            {
-                "x": 10,
-                "y": 82,
-                "type": "shrine"
-            },
-            {
-                "x": 18,
-                "y": 82,
-                "type": "shrine"
-            },
-            {
-                "x": 14,
-                "y": 86,
-                "type": "shrine"
             }
         ]
     }

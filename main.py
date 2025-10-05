@@ -1,9 +1,9 @@
-import pygame
+import pygame, os, sys
 from scripts.Tilemap import TileMap
 from scripts.player import Player
 from scripts.orb import Orb
-from scripts.shrine import Shrine
-from scripts.enemy import Enemy
+from scripts.shrine import ShrineManager
+from scripts.message_manager import MessageManager
 
 pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
@@ -15,95 +15,144 @@ font = pygame.font.SysFont(None, 24)
 # ----- LOAD MAP -----
 tilemap = TileMap("map.json", 32)
 
-# ----- ENTITIES -----
+# Count tiles for debugging
+for lname, layer in tilemap.layers.items():
+    print(f"{lname} tile count:", sum(1 for row in layer for t in row if t))
+
+# ----- ENTITY SETUP -----
 player = None
-shrine = None
 orbs = []
-enemies = []
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+orb_path = os.path.join(BASE_DIR, "assets", "entities", "Orb", "orbs.png")
+
+# ----- PLAYER SPAWN -----
 spawn_layer = tilemap.layers.get("spawnpoints", [])
-print("Spawn layer tiles:", spawn_layer)
-
-for tile in spawn_layer:
-    x, y = tile["x"], tile["y"]
-    tile_type = tile["type"].lower()
-    world_x, world_y = x * tilemap.tile_size, y * tilemap.tile_size
-
-    if tile_type == "player":
-        player = Player(world_x, world_y, "satiro-Sheet v1.1.png", tilemap)
-    elif tile_type == "knight":
-        enemies.append(Enemy(world_x, world_y, "Knight", tilemap))
-    elif tile_type == "skeleton":
-        enemies.append(Enemy(world_x, world_y, "Skeleton", tilemap, path_id=tile.get("path_id")))
-    elif tile_type == "shrine":
-        shrine = Shrine(world_x, world_y, "shrine.png", max_light=5)
+for y, row in enumerate(spawn_layer):
+    for x, tile_type in enumerate(row):
+        if tile_type and tile_type.lower() == "player":
+            world_x = x * tilemap.tile_size
+            world_y = y * tilemap.tile_size
+            player = Player(world_x, world_y, tilemap)
 
 if player is None:
     raise RuntimeError("No player spawn found in map!")
 
+# ----- ORB SPAWN -----
+orb_layer = tilemap.layers.get("orb_spawn", [])
+for y, row in enumerate(orb_layer):
+    for x, marker in enumerate(row):
+        if marker and marker.lower() == "orb":
+            world_x = x * tilemap.tile_size
+            world_y = y * tilemap.tile_size
+            orbs.append(Orb(world_x, world_y, orb_path, row=2))
+
+total_orbs = len(orbs)
+print(f"Spawned {total_orbs} orbs.")
+
+# ----- SHRINE MANAGER & MESSAGE MANAGER -----
+message_manager = MessageManager(font)
+shrine_manager = ShrineManager(tilemap, total_orbs)
+
 # ----- CAMERA -----
-camera_x = 0
-camera_y = 0
+camera_x, camera_y = 0, 0
 
 # ----- GAME LOOP -----
 running = True
-messages = []
-message_timer = 0
-
 while running:
-    dt = clock.tick(60) / 1000  # delta time in seconds
+    dt = clock.tick(60) / 1000
 
-    # ----- EVENT HANDLING -----
+    # --- Events ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    # ----- UPDATE ENTITIES -----
+    # --- Update ---
     player.handle_input()
     player.update(dt)
 
-    for enemy in enemies:
-        enemy.update(player.rect)
-
+    # Orbs collection
     for orb in orbs:
-        orb.update()
-        if not orb.collected and orb.check_collision(player.rect) and shrine:
-            shrine.add_light()
-            messages.append(f"Shrine light: {shrine.light}/{shrine.max_light}")
-            message_timer = 180
+        orb.update(dt)
+        if not orb.collected and orb.check_collision(player.hitbox):
+            orb.collected = True
+            collected_count = sum(1 for o in orbs if o.collected)
+            message_manager.add_message(f"Collected orb ({collected_count}/{total_orbs})")
 
-    if shrine:
-        shrine.update()
+    # Shrine interaction
+    orbs_collected = sum(1 for orb in orbs if orb.collected)
+    shrine_manager.update(player, message_manager, orbs_collected)
+    message_manager.update()
 
-    # ----- CAMERA UPDATE -----
+    # --- Camera ---
     camera_x = player.rect.centerx - SCREEN_WIDTH // 2
     camera_y = player.rect.centery - SCREEN_HEIGHT // 2
-    # Clamp camera to map bounds
     camera_x = max(0, min(camera_x, tilemap.width * tilemap.tile_size - SCREEN_WIDTH))
     camera_y = max(0, min(camera_y, tilemap.height * tilemap.tile_size - SCREEN_HEIGHT))
 
-    # ----- DRAW -----
-    screen.fill((25, 25, 25))
-
-    # Draw map and entities with camera offset
+    # --- Draw ---
+    screen.fill((10, 10, 10))  # Base darkness
     tilemap.draw(screen, camera_x, camera_y)
-    if shrine:
-        shrine.draw(screen, camera_x, camera_y)
+
+    # Draw orbs and shrines first so they glow under the fog
     for orb in orbs:
         orb.draw(screen, camera_x, camera_y)
-    for enemy in enemies:
-        enemy.draw(screen, camera_x, camera_y)
+    shrine_manager.draw(screen)
     player.draw(screen, camera_x, camera_y)
 
-    if shrine:
-        shrine.draw_light_mask(screen, camera_x, camera_y)
+    # --- LIGHT / FOG OF WAR ---
+    fog = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    fog.fill((0, 0, 0, 220))  # mostly opaque darkness
+
+    # Player light
+    light_radius = 120  # smaller radius
+    player_pos = (int(player.rect.centerx - camera_x), int(player.rect.centery - camera_y))
+    for r in range(light_radius, 0, -1):
+        alpha = int(200 * (r / light_radius) ** 2)  # fade faster with squared distance
+        pygame.draw.circle(fog, (0, 0, 0, alpha), player_pos, r)
+
+    # Shrine light glow
+    for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_manager.main_shrine else []):
+        if shrine is None:
+            continue
+
+        # Parameters
+        oval_width = 15   # half-width
+        oval_height = 40  # half-height
+        center_shift_y = -40  # move light slightly up
+
+        # Create a temporary surface for the light
+        light_surf = pygame.Surface((oval_width*2, oval_height*2), pygame.SRCALPHA)
+        
+        # Draw nested ellipses from outer to inner
+        for i in range(oval_height, 0, -1):
+            alpha = int(150 * (1 - i / oval_height))  # brighter at center (i small)
+            rect = pygame.Rect(oval_width - oval_width, oval_height - i, oval_width*2, i*2)
+            pygame.draw.ellipse(light_surf, (255, 255, 200, alpha), rect)
+
+        # Position light slightly above shrine
+        shrine_pos = (
+            int(shrine.rect.centerx - camera_x - oval_width),
+            int(shrine.rect.centery - camera_y - oval_height + center_shift_y)
+        )
+
+        # Subtract from fog to create light effect
+        fog.blit(light_surf, shrine_pos, special_flags=pygame.BLEND_RGBA_SUB)
+
+    # Orb glow
+    for orb in orbs:
+        if not orb.collected:
+            orb_pos = (int(orb.rect.centerx - camera_x), int(orb.rect.centery - camera_y))
+            orb_radius = 40
+            for r in range(orb_radius, 0, -1):
+                alpha = int(180 * (r / orb_radius) ** 2)
+                pygame.draw.circle(fog, (0, 0, 0, alpha), orb_pos, r)
+
+    # Apply fog on top
+    screen.blit(fog, (0, 0))
 
     # Draw messages
-    if messages and message_timer > 0:
-        text_surf = font.render(messages[-1], True, (255, 255, 200))
-        screen.blit(text_surf, (10, 10))
-        message_timer -= 1
-
+    message_manager.draw(screen)
     pygame.display.flip()
 
 pygame.quit()
