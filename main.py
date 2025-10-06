@@ -7,6 +7,7 @@ from scripts.player import Player
 from scripts.orb import Orb
 from scripts.shrine import ShrineManager
 from scripts.message_manager import MessageManager
+import math
 
 # ----- GAME SETUP -----
 pygame.init()
@@ -31,7 +32,6 @@ player = None
 orbs = []
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-orb_path = os.path.join(BASE_DIR, "assets", "entities", "Orb", "Free Smoke Fx  Pixel 04.png")
 
 # ----- PLAYER SPAWN -----
 spawn_layer = tilemap.layers.get("spawnpoints", [])
@@ -50,7 +50,7 @@ orb_layer = tilemap.layers.get("orb_spawn", [])
 for y, row in enumerate(orb_layer):
     for x, marker in enumerate(row):
         if marker and marker.lower() == "orb":
-            orb_size = 24 
+            orb_size = 24
             orbs.append(Orb(x, y, width=orb_size, height=orb_size))
 
 total_orbs = len(orbs)
@@ -60,10 +60,9 @@ print(f"Spawned {total_orbs} orbs.")
 message_manager = MessageManager(font)
 shrine_manager = ShrineManager(tilemap, total_orbs)
 
-main_shrine_light_radius = 50  # initial radius
-main_shrine_max_radius = max(SCREEN_WIDTH, SCREEN_HEIGHT)  # max radius to fill screen
-main_shrine_expand_speed = 200  # pixels per second
-
+main_shrine_light_radius = 50
+main_shrine_max_radius = max(SCREEN_WIDTH, SCREEN_HEIGHT)
+main_shrine_expand_speed = 200
 player_at_main_shrine = False
 
 # ----- TEXT WRAPPING -----
@@ -109,8 +108,8 @@ def show_opening_scene():
     pygame.display.flip()
     scene_font = pygame.font.SysFont(None, 28)
     displayed_lines = []
-    skip_to_all = False  # First Enter → skip delays
-    ready_to_start = False  # Second Enter → exit scene
+    skip_to_all = False
+    ready_to_start = False
 
     for line, delay in lines:
         displayed_lines.append(line)
@@ -122,9 +121,9 @@ def show_opening_scene():
                     sys.exit()
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                     if not skip_to_all:
-                        skip_to_all = True  # First Enter → skip delay, show all
+                        skip_to_all = True
                     else:
-                        ready_to_start = True  # Second Enter → exit scene
+                        ready_to_start = True
 
             screen.fill((0, 0, 0))
             y_offset = 50
@@ -139,23 +138,25 @@ def show_opening_scene():
 
             pygame.display.flip()
 
-            # Break timing loop if not skipping and delay passed
             if not skip_to_all and (time.time() - start_time >= delay):
                 break
 
             if ready_to_start:
-                return  # Exit the scene and start the game
+                return
 
             clock.tick(60)
 
 # ----- SHOW OPENING SCENE -----
 show_opening_scene()
 
-# ----- THEN START THE GAME LOOP -----
+# ----- GAME LOOP -----
 running = True
 player_light_radius = 80
+time_accumulator = 0  # for orb hover
+
 while running:
     dt = clock.tick(60) / 1000
+    time_accumulator += dt
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -169,6 +170,8 @@ while running:
     # ---- ORBS UPDATE ----
     for orb in orbs:
         orb.update(dt)
+        # Hover effect
+        orb.offset_y = math.sin(time_accumulator * 2 + orb.tile_x + orb.tile_y) * 5
         if not orb.collected and orb.check_collision(player.hitbox):
             orb.collected = True
 
@@ -190,12 +193,11 @@ while running:
     screen.fill((10, 10, 10))
     tilemap.draw(screen, camera_x, camera_y)
     for orb in orbs:
-        orb.update(dt)
         orb.draw(screen, camera_x, camera_y, tile_size=tilemap.tile_size)
 
     shrine_manager.draw(screen)
 
-    # ---- LIGHT & FOG ----
+    # ---- LIGHT & FOG -----
     fog = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
     fog.fill((0, 0, 0, 220))
 
@@ -204,31 +206,28 @@ while running:
     draw_light(fog, player_pos, int(player_light_radius), int(player_light_radius*0.8), intensity=80)
 
     # Shrines light
-for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_manager.main_shrine else []):
-    if shrine is None:
-        continue
+    for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_manager.main_shrine else []):
+        if shrine is None:
+            continue
 
-    shrine_pos_screen = (
-        int(shrine.rect.centerx - camera_x),
-        int(shrine.rect.centery - camera_y - 35)
-    )
+        shrine_pos_screen = (
+            int(shrine.rect.centerx - camera_x),
+            int(shrine.rect.centery - camera_y - 35)
+        )
 
-    # Main shrine light expansion
-    if shrine == shrine_manager.main_shrine and orbs_collected == total_orbs:
-        # Check if player is near to start expansion
-        if player.rect.colliderect(shrine.rect):
-            player_at_main_shrine = True
+        # Main shrine light expansion
+        if shrine == shrine_manager.main_shrine and orbs_collected == total_orbs:
+            if player.rect.colliderect(shrine.rect):
+                player_at_main_shrine = True
 
-        if player_at_main_shrine:
-            main_shrine_light_radius += main_shrine_expand_speed * dt
-            radius = min(main_shrine_light_radius, main_shrine_max_radius)
-            draw_light(fog, shrine_pos_screen, radius, radius, intensity=150)
+            if player_at_main_shrine:
+                main_shrine_light_radius += main_shrine_expand_speed * dt
+                radius = min(main_shrine_light_radius, main_shrine_max_radius)
+                draw_light(fog, shrine_pos_screen, radius, radius, intensity=150)
+            else:
+                draw_light(fog, shrine_pos_screen, 15, 40, intensity=120)
         else:
-            # Regular shrine light before interaction
             draw_light(fog, shrine_pos_screen, 15, 40, intensity=120)
-    else:
-        # Regular shrines
-        draw_light(fog, shrine_pos_screen, 15, 40, intensity=120)
 
     # Orbs light
     for orb in orbs:
@@ -238,15 +237,17 @@ for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_m
             int(orb.tile_x * tilemap.tile_size - camera_x + tilemap.tile_size//2),
             int(orb.tile_y * tilemap.tile_size - camera_y + tilemap.tile_size//2 + getattr(orb, 'offset_y', 0))
         )
+        # Draw a pulsing inner circle for collected orbs
+        inner_radius = 8 + 4 * math.sin(time_accumulator * 4 + orb.tile_x + orb.tile_y)
         draw_light(fog, orb_pos, 40, 40, intensity=120)
+        pygame.draw.circle(fog, (255, 200, 50, 180), orb_pos, int(inner_radius))
 
     screen.blit(fog, (0, 0))
     player.draw(screen, camera_x, camera_y)
     message_manager.draw(screen)
 
     # ---- UI: Orbs collected ----
-    collected_count = sum(1 for o in orbs if o.collected)
-    orb_text = font.render(f"Orbs: {collected_count}/{len(orbs)}", True, (255, 255, 255))
+    orb_text = font.render(f"Orbs: {orbs_collected}/{len(orbs)}", True, (255, 255, 255))
     screen.blit(orb_text, (SCREEN_WIDTH - orb_text.get_width() - 10, 10))
 
     pygame.display.flip()
