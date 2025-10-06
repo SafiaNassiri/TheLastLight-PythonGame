@@ -60,6 +60,12 @@ print(f"Spawned {total_orbs} orbs.")
 message_manager = MessageManager(font)
 shrine_manager = ShrineManager(tilemap, total_orbs)
 
+main_shrine_light_radius = 50  # initial radius
+main_shrine_max_radius = max(SCREEN_WIDTH, SCREEN_HEIGHT)  # max radius to fill screen
+main_shrine_expand_speed = 200  # pixels per second
+
+player_at_main_shrine = False
+
 # ----- TEXT WRAPPING -----
 def wrap_text(text, font, max_width):
     words = text.split(' ')
@@ -198,18 +204,31 @@ while running:
     draw_light(fog, player_pos, int(player_light_radius), int(player_light_radius*0.8), intensity=80)
 
     # Shrines light
-    for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_manager.main_shrine else []):
-        if shrine is None:
-            continue
+for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_manager.main_shrine else []):
+    if shrine is None:
+        continue
 
-        radius_w, radius_h = (int(shrine_manager.shrine_radius*1.5), int(shrine_manager.shrine_radius)) \
-            if shrine_manager.ending and shrine == shrine_manager.main_shrine else (15, 40)
+    shrine_pos_screen = (
+        int(shrine.rect.centerx - camera_x),
+        int(shrine.rect.centery - camera_y - 35)
+    )
 
-        shrine_pos_screen = (
-            int(shrine.rect.centerx - camera_x),
-            int(shrine.rect.centery - camera_y - 35)
-        )
-        draw_light(fog, shrine_pos_screen, radius_w, radius_h, intensity=120)
+    # Main shrine light expansion
+    if shrine == shrine_manager.main_shrine and orbs_collected == total_orbs:
+        # Check if player is near to start expansion
+        if player.rect.colliderect(shrine.rect):
+            player_at_main_shrine = True
+
+        if player_at_main_shrine:
+            main_shrine_light_radius += main_shrine_expand_speed * dt
+            radius = min(main_shrine_light_radius, main_shrine_max_radius)
+            draw_light(fog, shrine_pos_screen, radius, radius, intensity=150)
+        else:
+            # Regular shrine light before interaction
+            draw_light(fog, shrine_pos_screen, 15, 40, intensity=120)
+    else:
+        # Regular shrines
+        draw_light(fog, shrine_pos_screen, 15, 40, intensity=120)
 
     # Orbs light
     for orb in orbs:
