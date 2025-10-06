@@ -25,11 +25,9 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
 ## Features (Planned & Implemented)
 - [x] Create an editor.py for drawing Maps
 - [x] Basic player movement  
-- [ ] Player health + stamina system  
-- [ ] Collectible orbs  
+- [x] Collectible orbs  
 - [ ] Shrine restoration  
-- [ ] Enemy variety [STRETCH]
-- [ ] Mini-shrines and lore objects [STRETCH]
+- [x] Mini-shrines and lore objects 
 
 ## Project Structure
 ```text
