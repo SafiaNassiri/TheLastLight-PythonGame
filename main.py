@@ -1,10 +1,14 @@
-import pygame, os, sys
+import pygame
+import os
+import sys
+import time
 from scripts.Tilemap import TileMap
 from scripts.player import Player
 from scripts.orb import Orb
 from scripts.shrine import ShrineManager
 from scripts.message_manager import MessageManager
 
+# ----- GAME SETUP -----
 pygame.init()
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -12,11 +16,15 @@ pygame.display.set_caption("The Last Light")
 clock = pygame.time.Clock()
 font = pygame.font.SysFont(None, 24)
 
+# ----- LIGHT FUNCTION -----
+def draw_light(surface, position, radius_w, radius_h, intensity=100):
+    """Draw an oval/ellipse light effect at position on the given surface."""
+    light_surf = pygame.Surface((radius_w*2, radius_h*2), pygame.SRCALPHA)
+    pygame.draw.ellipse(light_surf, (255, 255, 200, intensity), (0, 0, radius_w*2, radius_h*2))
+    surface.blit(light_surf, (position[0]-radius_w, position[1]-radius_h), special_flags=pygame.BLEND_RGBA_SUB)
+
 # ----- LOAD MAP -----
 tilemap = TileMap("map.json", 32)
-
-for lname, layer in tilemap.layers.items():
-    print(f"{lname} tile count:", sum(1 for row in layer for t in row if t))
 
 # ----- ENTITY SETUP -----
 player = None
@@ -42,9 +50,8 @@ orb_layer = tilemap.layers.get("orb_spawn", [])
 for y, row in enumerate(orb_layer):
     for x, marker in enumerate(row):
         if marker and marker.lower() == "orb":
-            world_x = x * tilemap.tile_size
-            world_y = y * tilemap.tile_size
-            orbs.append(Orb(world_x // tilemap.tile_size, world_y // tilemap.tile_size, orb_path, row=2))
+            orb_size = 24 
+            orbs.append(Orb(x, y, width=orb_size, height=orb_size))
 
 total_orbs = len(orbs)
 print(f"Spawned {total_orbs} orbs.")
@@ -53,99 +60,177 @@ print(f"Spawned {total_orbs} orbs.")
 message_manager = MessageManager(font)
 shrine_manager = ShrineManager(tilemap, total_orbs)
 
-# ----- CAMERA -----
-camera_x, camera_y = 0, 0
+# ----- TEXT WRAPPING -----
+def wrap_text(text, font, max_width):
+    words = text.split(' ')
+    lines = []
+    current_line = ''
+    for word in words:
+        test_line = current_line + (' ' if current_line else '') + word
+        if font.size(test_line)[0] <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+    if current_line:
+        lines.append(current_line)
+    return lines
 
-# --- HELPER FUNCTION FOR RADIAL LIGHT ---
-def draw_light(surface, pos, radius, color=(255, 255, 200), intensity=180):
-    """Draw a radial light circle that is brightest at center and fades out."""
-    for r in range(radius, 0, -1):
-        alpha = int(intensity * (1 - (r / radius)) ** 2)  # brightest at center
-        pygame.draw.circle(surface, (*color, alpha), pos, r)
+# ----- OPENING SCENE -----
+def show_opening_scene():
+    lines = [
+        ("There is no light.", 1),
+        ("Only the chill of the ever-fog.", 1),
+        ("The sun is but a memory, swallowed by the great darkness.", 1),
+        ("But you.", 2),
+        ("You were born under a different star.", 1),
+        ("Your heart holds a flame the darkness cannot quench.", 1),
+        ("Your kin chose you, bringer of dawn.", 1),
+        ("They chose you for courage, a shield against despair.", 1),
+        ("They chose you for bravery, a blade against the shadows.",1),
+        ("You are immune. The fog's taint cannot touch you.", 1),
+        ("Restore what was lost.", 1),
+        ("Retrieve the six spheres of dawn.", 1),
+        ("Three mark the start. The others are scattered:", 1),
+        ("The overgrown garden.", 1),
+        ("The hollow square.",1),
+        ("The forgotten plaza.", 1),
+        ("Gather the six. Take them to the main shrine.", 4),
+        ("Go. The fate of all light rests in your steps.", 0)
+    ]
 
-# --- GAME LOOP -----
+    screen.fill((0, 0, 0))
+    pygame.display.flip()
+    scene_font = pygame.font.SysFont(None, 28)
+    displayed_lines = []
+    skip_to_all = False  # First Enter → skip delays
+    ready_to_start = False  # Second Enter → exit scene
+
+    for line, delay in lines:
+        displayed_lines.append(line)
+        start_time = time.time()
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                    if not skip_to_all:
+                        skip_to_all = True  # First Enter → skip delay, show all
+                    else:
+                        ready_to_start = True  # Second Enter → exit scene
+
+            screen.fill((0, 0, 0))
+            y_offset = 50
+            lines_to_draw = displayed_lines if not skip_to_all else [l for l,_ in lines]
+            for text_line in lines_to_draw:
+                wrapped = wrap_text(text_line, scene_font, SCREEN_WIDTH - 40)
+                for wrapped_line in wrapped:
+                    surf = scene_font.render(wrapped_line, True, (255, 255, 255))
+                    x = (SCREEN_WIDTH - surf.get_width()) // 2
+                    screen.blit(surf, (x, y_offset))
+                    y_offset += 30
+
+            pygame.display.flip()
+
+            # Break timing loop if not skipping and delay passed
+            if not skip_to_all and (time.time() - start_time >= delay):
+                break
+
+            if ready_to_start:
+                return  # Exit the scene and start the game
+
+            clock.tick(60)
+
+# ----- SHOW OPENING SCENE -----
+show_opening_scene()
+
+# ----- THEN START THE GAME LOOP -----
 running = True
+player_light_radius = 80
 while running:
     dt = clock.tick(60) / 1000
 
-    # --- Events ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
 
-    # --- Update ---
-    player.handle_input()
+    # ---- PLAYER UPDATE ----
+    if not getattr(player, "disable_input", False):
+        player.handle_input()
     player.update(dt)
 
-    # Orbs collection
+    # ---- ORBS UPDATE ----
     for orb in orbs:
         orb.update(dt)
         if not orb.collected and orb.check_collision(player.hitbox):
             orb.collected = True
-            collected_count = sum(1 for o in orbs if o.collected)
-            message_manager.add_message(f"Collected orb ({collected_count}/{total_orbs})")
 
-    # Shrine interaction
     orbs_collected = sum(1 for orb in orbs if orb.collected)
-    shrine_manager.update(player, message_manager, orbs_collected)
+
+    # ---- SHRINE UPDATE ----
+    shrine_manager.update(player, message_manager, orbs_collected, dt)
+
+    # ---- MESSAGE UPDATE ----
     message_manager.update()
 
-    # --- Camera ---
+    # ---- CAMERA CALCULATION ----
     camera_x = player.rect.centerx - SCREEN_WIDTH // 2
     camera_y = player.rect.centery - SCREEN_HEIGHT // 2
     camera_x = max(0, min(camera_x, tilemap.width * tilemap.tile_size - SCREEN_WIDTH))
     camera_y = max(0, min(camera_y, tilemap.height * tilemap.tile_size - SCREEN_HEIGHT))
 
-    # --- Draw Scene ---
-    screen.fill((10, 10, 10))  # Base darkness
+    # ---- DRAW WORLD -----
+    screen.fill((10, 10, 10))
     tilemap.draw(screen, camera_x, camera_y)
     for orb in orbs:
-        orb.draw(screen, camera_x, camera_y)
-    shrine_manager.draw(screen)
-    player.draw(screen, camera_x, camera_y)
+        orb.update(dt)
+        orb.draw(screen, camera_x, camera_y, tile_size=tilemap.tile_size)
 
-    # --- LIGHT / FOG OF WAR ---
+    shrine_manager.draw(screen)
+
+    # ---- LIGHT & FOG ----
     fog = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
-    fog.fill((0, 0, 0, 220))  # mostly opaque darkness
-    light_mask = pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA)
+    fog.fill((0, 0, 0, 220))
 
     # Player light
     player_pos = (int(player.rect.centerx - camera_x), int(player.rect.centery - camera_y))
-    draw_light(light_mask, player_pos, 120, intensity=200)
+    draw_light(fog, player_pos, int(player_light_radius), int(player_light_radius*0.8), intensity=80)
 
-    # Shrine lights (vertical ovals)
+    # Shrines light
     for shrine in shrine_manager.shrines + ([shrine_manager.main_shrine] if shrine_manager.main_shrine else []):
         if shrine is None:
             continue
-        oval_width = 15
-        oval_height = 40
-        center_shift_y = -40  # slightly above shrine
 
-        light_surf = pygame.Surface((oval_width*2, oval_height*2), pygame.SRCALPHA)
-        # Draw from inner (bright) to outer (dim)
-        for i in range(oval_height, 0, -1):
-            alpha = int(150 * (i / oval_height))  # brightest at center
-            rect = pygame.Rect(0, oval_height - i, oval_width*2, i*2)
-            pygame.draw.ellipse(light_surf, (255, 255, 200, alpha), rect)
+        radius_w, radius_h = (int(shrine_manager.shrine_radius*1.5), int(shrine_manager.shrine_radius)) \
+            if shrine_manager.ending and shrine == shrine_manager.main_shrine else (15, 40)
 
-        shrine_pos = (
-            int(shrine.rect.centerx - camera_x - oval_width),
-            int(shrine.rect.centery - camera_y - oval_height + center_shift_y)
+        shrine_pos_screen = (
+            int(shrine.rect.centerx - camera_x),
+            int(shrine.rect.centery - camera_y - 35)
         )
-        fog.blit(light_surf, shrine_pos, special_flags=pygame.BLEND_RGBA_SUB)
+        draw_light(fog, shrine_pos_screen, radius_w, radius_h, intensity=120)
 
-    # Orb glow
+    # Orbs light
     for orb in orbs:
-        if not orb.collected:
-            orb_pos = (int(orb.rect.centerx - camera_x), int(orb.rect.centery - camera_y))
-            draw_light(light_mask, orb_pos, 40, intensity=180)
+        if orb.collected:
+            continue
+        orb_pos = (
+            int(orb.tile_x * tilemap.tile_size - camera_x + tilemap.tile_size//2),
+            int(orb.tile_y * tilemap.tile_size - camera_y + tilemap.tile_size//2 + getattr(orb, 'offset_y', 0))
+        )
+        draw_light(fog, orb_pos, 40, 40, intensity=120)
 
-    # Merge light mask into fog
-    fog.blit(light_mask, (0,0), special_flags=pygame.BLEND_RGBA_SUB)
     screen.blit(fog, (0, 0))
-
-    # Draw messages
+    player.draw(screen, camera_x, camera_y)
     message_manager.draw(screen)
+
+    # ---- UI: Orbs collected ----
+    collected_count = sum(1 for o in orbs if o.collected)
+    orb_text = font.render(f"Orbs: {collected_count}/{len(orbs)}", True, (255, 255, 255))
+    screen.blit(orb_text, (SCREEN_WIDTH - orb_text.get_width() - 10, 10))
+
     pygame.display.flip()
 
 pygame.quit()
+sys.exit()

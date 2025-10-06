@@ -22996,24 +22996,6 @@
                 "id": 0
             },
             {
-                "x": 13,
-                "y": 6,
-                "sheet": "assets/tiles\\Environment\\TX Plant.png",
-                "id": 0
-            },
-            {
-                "x": 14,
-                "y": 6,
-                "sheet": "assets/tiles\\Environment\\TX Plant.png",
-                "id": 0
-            },
-            {
-                "x": 15,
-                "y": 6,
-                "sheet": "assets/tiles\\Environment\\TX Plant.png",
-                "id": 0
-            },
-            {
                 "x": 16,
                 "y": 6,
                 "sheet": "assets/tiles\\Environment\\TX Plant.png",
@@ -23027,18 +23009,6 @@
             },
             {
                 "x": 12,
-                "y": 7,
-                "sheet": "assets/tiles\\Environment\\TX Plant.png",
-                "id": 0
-            },
-            {
-                "x": 13,
-                "y": 7,
-                "sheet": "assets/tiles\\Environment\\TX Plant.png",
-                "id": 0
-            },
-            {
-                "x": 14,
                 "y": 7,
                 "sheet": "assets/tiles\\Environment\\TX Plant.png",
                 "id": 0
@@ -23586,6 +23556,60 @@
         ],
         "props2": [
             {
+                "x": 13,
+                "y": 5,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 139
+            },
+            {
+                "x": 14,
+                "y": 5,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 140
+            },
+            {
+                "x": 15,
+                "y": 5,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 141
+            },
+            {
+                "x": 13,
+                "y": 6,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 155
+            },
+            {
+                "x": 14,
+                "y": 6,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 156
+            },
+            {
+                "x": 15,
+                "y": 6,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 157
+            },
+            {
+                "x": 13,
+                "y": 7,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 171
+            },
+            {
+                "x": 14,
+                "y": 7,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 172
+            },
+            {
+                "x": 15,
+                "y": 7,
+                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
+                "id": 173
+            },
+            {
                 "x": 25,
                 "y": 12,
                 "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
@@ -23934,60 +23958,6 @@
         "spawner": [
             {
                 "x": 13,
-                "y": 5,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 139
-            },
-            {
-                "x": 14,
-                "y": 5,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 140
-            },
-            {
-                "x": 15,
-                "y": 5,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 141
-            },
-            {
-                "x": 13,
-                "y": 6,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 155
-            },
-            {
-                "x": 14,
-                "y": 6,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 156
-            },
-            {
-                "x": 15,
-                "y": 6,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 157
-            },
-            {
-                "x": 13,
-                "y": 7,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 171
-            },
-            {
-                "x": 14,
-                "y": 7,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 172
-            },
-            {
-                "x": 15,
-                "y": 7,
-                "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
-                "id": 173
-            },
-            {
-                "x": 13,
                 "y": 80,
                 "sheet": "assets/tiles\\Props\\TX Props with Shadow.png",
                 "id": 139
@@ -24135,6 +24105,46 @@
         ],
         "orb_spawn": [
             {
+                "x": 14,
+                "y": 6,
+                "type": "orb"
+            },
+            {
+                "x": 2,
+                "y": 23,
+                "type": "orb"
+            },
+            {
+                "x": 55,
+                "y": 39,
+                "type": "orb"
+            },
+            {
+                "x": 64,
+                "y": 44,
+                "type": "orb"
+            },
+            {
+                "x": 46,
+                "y": 48,
+                "type": "orb"
+            },
+            {
+                "x": 43,
+                "y": 49,
+                "type": "orb"
+            },
+            {
+                "x": 13,
+                "y": 51,
+                "type": "orb"
+            },
+            {
+                "x": 47,
+                "y": 63,
+                "type": "orb"
+            },
+            {
                 "x": 21,
                 "y": 67,
                 "type": "orb"
@@ -24147,6 +24157,11 @@
             {
                 "x": 14,
                 "y": 77,
+                "type": "orb"
+            },
+            {
+                "x": 81,
+                "y": 82,
                 "type": "orb"
             }
         ],

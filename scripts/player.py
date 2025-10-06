@@ -116,11 +116,15 @@ class Player(pygame.sprite.Sprite):
         new_hitbox.x += self.dx * self.speed * dt
         if not self.tilemap.is_solid(new_hitbox):
             self.hitbox.x = new_hitbox.x
+        else:
+            print("[DEBUG] Collision on X-axis")
 
         new_hitbox = self.hitbox.copy()
         new_hitbox.y += self.dy * self.speed * dt
         if not self.tilemap.is_solid(new_hitbox):
             self.hitbox.y = new_hitbox.y
+        else:
+            print("[DEBUG] Collision on Y-axis")
 
         # Sync sprite rect with hitbox for drawing
         self.rect.midbottom = (self.hitbox.centerx, self.hitbox.bottom + 32)
@@ -139,5 +143,6 @@ class Player(pygame.sprite.Sprite):
 
     def draw(self, surf, camera_x=0, camera_y=0):
         surf.blit(self.image, self.rect.move(-camera_x, -camera_y))
-        pygame.draw.rect(surf, (255, 0, 0), self.hitbox.move(-camera_x, -camera_y), 1)
+        #DEBUG: red rect at player sprite feet
+        # pygame.draw.rect(surf, (255, 0, 0), self.hitbox.move(-camera_x, -camera_y), 1)
 

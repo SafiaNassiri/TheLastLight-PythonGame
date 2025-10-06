@@ -2,57 +2,65 @@ import pygame
 import math
 
 class Orb:
-    def __init__(self, x, y, image_path, row=2, tile_size=32, anim_speed=0.15):
+    def __init__(self, x, y, width=24, height=24):
         """
         x, y: tile coordinates
-        image_path: path to orb sprite sheet
-        row: 0-indexed row to use from the sheet
-        tile_size: size of a single frame in the sheet
-        anim_speed: seconds per frame
+        width, height: pixel size of the orb
         """
-        full_sheet = pygame.image.load(image_path).convert_alpha()
-        sheet_width, sheet_height = full_sheet.get_size()
-        cols = sheet_width // tile_size
-
-        # Extract frames from the given row
-        self.frames = []
-        for col in range(cols):
-            rect = pygame.Rect(col * tile_size, row * tile_size, tile_size, tile_size)
-            frame = full_sheet.subsurface(rect).copy()
-            self.frames.append(frame)
-        # Create forward-backward animation sequence
-        self.frames = self.frames + self.frames[::-1][1:-1]
-
-        self.frame_index = 0
-        self.anim_timer = 0
-        self.anim_speed = anim_speed
-
-        self.tile_size = tile_size
-        self.rect = self.frames[0].get_rect(topleft=(x * tile_size, y * tile_size))
+        self.tile_x = x
+        self.tile_y = y
+        self.width = width
+        self.height = height
         self.collected = False
-        self.float_timer = 0
-        self.offset_y = 0
 
-    def check_collision(self, player_rect):
-        if not self.collected and self.rect.colliderect(player_rect):
-            self.collected = True
-            return True
+        # Hover / float
+        self.float_timer = 0
+        self.offset_x = 0
+        self.offset_y = 0
+        self.hover_amplitude = 5
+        self.hover_speed = 2  # controls how fast it floats
+
+        # Pulsing inner circle
+        self.pulse_timer = 0
+        self.inner_min = width // 4
+        self.inner_max = width // 2
+
+        # Colors
+        self.color = (178, 212, 221)      # main orb (#b2d4dd)
+        self.inner_color = (150, 190, 200) # darker, pulsing
+
+    def check_collision(self, player_rect, tile_size=32):
+        if not self.collected:
+            rect = pygame.Rect(
+                self.tile_x * tile_size,
+                self.tile_y * tile_size,
+                self.width,
+                self.height
+            )
+            if rect.colliderect(player_rect):
+                self.collected = True
+                return True
         return False
 
     def update(self, dt=1.0):
         if not self.collected:
-            # Float animation
-            self.float_timer += 0.05 * dt
-            self.offset_y = math.sin(self.float_timer) * 4
+            # Hover offsets
+            self.float_timer += self.hover_speed * dt
+            self.offset_x = math.sin(self.float_timer) * self.hover_amplitude
+            self.offset_y = math.cos(self.float_timer) * self.hover_amplitude
 
-            # Frame animation
-            self.anim_timer += dt
-            if self.anim_timer >= self.anim_speed:
-                self.anim_timer = 0
-                self.frame_index = (self.frame_index + 1) % len(self.frames)
+            # Inner pulse
+            self.pulse_timer += dt * 3  # pulse speed
+            self.inner_radius = self.inner_min + (self.inner_max - self.inner_min) * (0.5 + 0.5 * math.sin(self.pulse_timer))
 
-    def draw(self, surface, camera_x=0, camera_y=0):
+    def draw(self, surface, camera_x=0, camera_y=0, tile_size=32):
         if not self.collected:
-            screen_x = self.rect.x - camera_x
-            screen_y = self.rect.y - camera_y + self.offset_y
-            surface.blit(self.frames[self.frame_index], (screen_x, screen_y))
+            # Pixel position
+            px = self.tile_x * tile_size - camera_x + tile_size//2 + self.offset_x
+            py = self.tile_y * tile_size - camera_y + tile_size//2 + self.offset_y
+
+            # Main orb
+            pygame.draw.circle(surface, self.color, (int(px), int(py)), self.width//2)
+
+            # Inner pulsing circle
+            pygame.draw.circle(surface, self.inner_color, (int(px), int(py)), int(self.inner_radius))

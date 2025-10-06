@@ -110,19 +110,15 @@ class TileMap:
             tile_x = px // self.tile_size
             tile_y = py // self.tile_size
 
-            # Out-of-bounds is solid
+            # Out-of-bounds counts as solid
             if tile_x < 0 or tile_x >= self.width or tile_y < 0 or tile_y >= self.height:
+                print(f"[DEBUG] Out of bounds collision at {tile_x},{tile_y}")
                 return True
 
-            # Check floor
-            floor_layer = self.layers.get("floor", [])
-            if not floor_layer[tile_y][tile_x]:
-                return True
-
-            # Check other solid layers
             for lname in self.SOLID_LAYERS:
                 layer = self.layers.get(lname, [])
                 if layer and layer[tile_y][tile_x]:
+                    print(f"[DEBUG] Collided with {lname} at ({tile_x},{tile_y})")
                     return True
 
         return False
