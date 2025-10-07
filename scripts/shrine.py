@@ -87,17 +87,29 @@ class ShrineManager:
                     shrine.message_shown = True
             shrine.player_inside = colliding
 
-        # Main shrine interaction — trigger ending only if all orbs collected
+        # Main shrine interaction
         if self.main_shrine:
             colliding = player.hitbox.colliderect(self.main_shrine.rect)
-            if colliding and orbs_collected >= self.total_orbs and not self.ending:
-                # Trigger final message & start end sequence
-                message_manager.add_message(
-                    "The six Spheres are whole. The original light is reborn through your courage, Bringer of Dawn. Now, command the dawn!",
-                    duration_seconds=2
-                )
-                self.ending = True
-                player.disable_input = True
+
+            if colliding and not self.ending:
+                # Determine message based on orbs collected
+                if orbs_collected == 0:
+                    text = "The vessel is empty. The shadow still prevails. Seek the six fragments, Bringer of Dawn, and bring them home."
+                elif orbs_collected < self.total_orbs:
+                    text = "You've gathered some light but it isn't enough yet. You grow nearer to the dawn, brave one."
+                else:  # orbs_collected == total_orbs
+                    text = "The six Spheres are whole. The original light is reborn through your courage, Bringer of Dawn. Now, command the dawn!"
+                    self.ending = True
+                    player.disable_input = True
+
+                # Show message only once per shrine visit
+                if not self.main_shrine.message_shown:
+                    message_manager.add_message(text, duration_seconds=2)
+                    self.main_shrine.message_shown = True
+
+            # Reset message_shown if player leaves shrine
+            if not colliding:
+                self.main_shrine.message_shown = False
 
             self.main_shrine_player_inside = colliding
 
