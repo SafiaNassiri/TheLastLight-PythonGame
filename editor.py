@@ -8,14 +8,12 @@ screen = pygame.display.set_mode((800, 600), pygame.RESIZABLE)
 pygame.display.set_caption("Map Editor")
 font = pygame.font.SysFont(None, 20)
 
-# -----------------------------
 # Camera & zoom
 camera_x, camera_y = 0, 0
 CAMERA_SPEED = 10
 zoom = 1.0
 is_fullscreen = False
 
-# -----------------------------
 # States
 dragging = False
 erasing = False
@@ -26,7 +24,6 @@ placing_spawn = False
 selected_spawn_type = "player"
 current_layer = "floor"
 
-# -----------------------------
 # Tile size config
 sheet_configs = {
     "TX Tileset Grass.png": 32,
@@ -37,7 +34,6 @@ sheet_configs = {
     "TX Props with Shadow.png": 32
 }
 
-# -----------------------------
 # Layers
 def make_layer():
     return [[None for _ in range(MAP_WIDTH)] for _ in range(MAP_HEIGHT)]
@@ -63,7 +59,6 @@ layer_order = [
     "orb_spawn","shrine_logic","spawnpoints"
 ]
 
-# -----------------------------
 # Spawn marker colors
 spawn_marker_colors = {
     "player": (0, 255, 0, 160),
@@ -79,7 +74,6 @@ spawn_layer_map = {
     "main_shrine": "main_shrine_marker"
 }
 
-# -----------------------------
 # Load tilesheets
 def load_sheets(base_dir="assets/tiles"):
     sheets = []
@@ -120,7 +114,6 @@ current_sheet = 0
 tileset = sheets[current_sheet]["tiles"]
 selected_tile = 0
 
-# -----------------------------
 # Load/Save map
 def load_map_sparse(filename="map.json"):
     if not os.path.exists(filename): return
@@ -152,7 +145,6 @@ def save_map_sparse(filename="map.json"):
 
 load_map_sparse()
 
-# -----------------------------
 # Help
 help_lines = [
     "[1..5] Switch sheet",
@@ -168,7 +160,6 @@ help_lines = [
     "Click tilesheet preview to select tile"
 ]
 
-# -----------------------------
 # Main loop
 running = True
 clock = pygame.time.Clock()
@@ -207,7 +198,7 @@ while running:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx,my = event.pos
 
-            # --- Tilesheet viewer click (bottom-left) ---
+            # Tilesheet viewer click (bottom-left)
             viewer_w, viewer_h = 320, 320
             viewer_x, viewer_y = 10, view_h - viewer_h - 10
             sheet = sheets[current_sheet]
@@ -222,7 +213,7 @@ while running:
                 print(f"Selected tile {selected_tile} from sheet preview")
                 continue
 
-            # --- Map painting ---
+            # Map painting
             tx_map, ty_map = int((mx+camera_x)/(TILE_SIZE*zoom)), int((my+camera_y)/(TILE_SIZE*zoom))
             if 0 <= tx_map < MAP_WIDTH and 0 <= ty_map < MAP_HEIGHT:
                 if event.button == 1:

@@ -10,7 +10,8 @@ class Shrine:
         self.color = (100, 200, 255)
         self.activated = False
         self.lore = lore
-        self.player_inside = False  # track if player is currently on shrine
+        self.message_shown = False
+        self.player_inside = False  # track if player is currently at shrine
 
         # For end sequence visual
         self.end_radius = 0
@@ -81,47 +82,37 @@ class ShrineManager:
         for shrine in self.shrines:
             colliding = player.hitbox.colliderect(shrine.rect)
             if colliding and not shrine.player_inside:
-                shrine.add_light()
-                message_manager.add_message(shrine.lore)
+                if shrine.add_light() or not shrine.message_shown:
+                    message_manager.add_message(shrine.lore, duration_seconds=1.5)
+                    shrine.message_shown = True
             shrine.player_inside = colliding
 
-        # Main shrine interaction
+        # Main shrine interaction — trigger ending only if all orbs collected
         if self.main_shrine:
             colliding = player.hitbox.colliderect(self.main_shrine.rect)
-            if colliding and not self.main_shrine_player_inside:
-                if orbs_collected == 0:
-                    message_manager.add_message(
-                        "The vessel is empty. The shadow still prevails. Seek the six fragments, Bringer of Dawn, and bring them home."
-                    )
-                elif orbs_collected < self.total_orbs:
-                    message_manager.add_message(
-                        "Your light grows, Bringer of Dawn. The vessel now holds enough power to speak, but not enough to shine. The full dawn still awaits completion."
-                    )
-                elif orbs_collected >= self.total_orbs:
-                    # Trigger end sequence instead of quitting immediately
-                    if not self.ending:
-                        message_manager.add_message(
-                            "The six Spheres are whole. The original light is reborn through your courage, Bringer of Dawn. Now, command the dawn!"
-                        )
-                        self.ending = True
-                        player.disable_input = True
+            if colliding and orbs_collected >= self.total_orbs and not self.ending:
+                # Trigger final message & start end sequence
+                message_manager.add_message(
+                    "The six Spheres are whole. The original light is reborn through your courage, Bringer of Dawn. Now, command the dawn!",
+                    duration_seconds=2
+                )
+                self.ending = True
+                player.disable_input = True
 
             self.main_shrine_player_inside = colliding
 
-        # Handle end sequence animation
+        # End sequence animation
         if self.ending:
             self.end_timer += dt
+            self.main_shrine.end_radius += 300 * dt  # px per second
 
-            # Increase shrine radius
-            self.main_shrine.end_radius += 300 * dt  # pixels per second
-
-            # Fade to black after radius fills screen
+            # Fade to black when radius covers the screen diagonal
             screen_diag = (pygame.display.get_surface().get_width() ** 2 +
-                           pygame.display.get_surface().get_height() ** 2) ** 0.5
+                        pygame.display.get_surface().get_height() ** 2) ** 0.5
             if self.main_shrine.end_radius >= screen_diag / 2:
                 self.fade_alpha = min(255, self.fade_alpha + 150 * dt)
 
-            # Close game when fade is complete
+            # Trigger closing scene when fade is complete
             if self.fade_alpha >= 255:
                 self.show_closing_scene()
 
@@ -129,7 +120,7 @@ class ShrineManager:
         for shrine in self.shrines:
             shrine.draw(surface)
             # Draw oval light around regular shrines
-            oval_width, oval_height = 30, 50  # adjust for desired oval shape
+            oval_width, oval_height = 30, 50
             light_surf = pygame.Surface((oval_width*2, oval_height*2), pygame.SRCALPHA)
             pygame.draw.ellipse(light_surf, (255, 255, 200, 120), (0, 0, oval_width*2, oval_height*2))
             shrine_center = shrine.rect.center

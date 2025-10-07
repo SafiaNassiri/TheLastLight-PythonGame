@@ -3,10 +3,6 @@ import math
 
 class Orb:
     def __init__(self, x, y, width=24, height=24):
-        """
-        x, y: tile coordinates
-        width, height: pixel size of the orb
-        """
         self.tile_x = x
         self.tile_y = y
         self.width = width
@@ -18,7 +14,7 @@ class Orb:
         self.offset_x = 0
         self.offset_y = 0
         self.hover_amplitude = 5
-        self.hover_speed = 2  # controls how fast it floats
+        self.hover_speed = 2
 
         # Pulsing inner circle
         self.pulse_timer = 0
@@ -26,7 +22,7 @@ class Orb:
         self.inner_max = width // 2
 
         # Colors
-        self.color = (178, 212, 221)      # main orb (#b2d4dd)
+        self.color = (178, 212, 221)      # main orb
         self.inner_color = (150, 190, 200) # darker, pulsing
 
     def check_collision(self, player_rect, tile_size=32):

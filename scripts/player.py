@@ -59,7 +59,7 @@ class Player(pygame.sprite.Sprite):
         self.image = self.animations[self.current_animation][0]
         self.rect = self.image.get_rect(topleft=(x, y))
 
-        # Collision rect (hitbox) anchored to feet
+        # Hitbox anchored to feet
         hitbox_width = 24
         hitbox_height = 16
         self.hitbox = pygame.Rect(
@@ -92,9 +92,7 @@ class Player(pygame.sprite.Sprite):
 
             # Handle straight horizontal by picking diagonal frame
             if dx_norm != 0 and dy_norm == 0:
-                dy_norm = self.last_vertical
-            elif dy_norm != 0:
-                self.last_vertical = dy_norm
+                dy_norm = 1
 
             direction_row = DIR_TO_ROW.get((dx_norm, dy_norm), 0)
             directions = ["down", "left_down", "left_up", "up", "right_up", "right_down"]
@@ -116,15 +114,15 @@ class Player(pygame.sprite.Sprite):
         new_hitbox.x += self.dx * self.speed * dt
         if not self.tilemap.is_solid(new_hitbox):
             self.hitbox.x = new_hitbox.x
-        else:
-            print("[DEBUG] Collision on X-axis")
+        # else:
+        #     print("[DEBUG] Collision on X-axis")
 
         new_hitbox = self.hitbox.copy()
         new_hitbox.y += self.dy * self.speed * dt
         if not self.tilemap.is_solid(new_hitbox):
             self.hitbox.y = new_hitbox.y
-        else:
-            print("[DEBUG] Collision on Y-axis")
+        # else:
+        #     print("[DEBUG] Collision on Y-axis")
 
         # Sync sprite rect with hitbox for drawing
         self.rect.midbottom = (self.hitbox.centerx, self.hitbox.bottom + 32)

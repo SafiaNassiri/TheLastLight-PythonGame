@@ -1,19 +1,19 @@
 import pygame, os, json
 
 class TileMap:
-    # Layers to draw in game (draw order matters!)
+    # Layers to draw in game
     VISIBLE_LAYERS = [
         "floor",
         "wall",
         "props",
-        "shrines",   # draw shrines first
+        "shrines",
         "spawner",
         "props2",
     ]
     # Layers considered solid for collision
     SOLID_LAYERS = ["wall", "props", "shrines"]
 
-    # Layers that store logic markers (no sheet/id)
+    # Layers that store logic markers
     LOGIC_LAYERS = ["spawnpoints", "orb_spawn", "main_shrine_marker", "shrine_logic"]
 
     def __init__(self, map_file, tile_size=32):
@@ -46,7 +46,6 @@ class TileMap:
                     if lname in self.LOGIC_LAYERS:
                         layer_grid[y][x] = t.get("type", None)
                     else:
-                        # Make sure "sheet" and "id" exist, else skip
                         sheet = t.get("sheet")
                         tid = t.get("id")
                         if sheet is not None and tid is not None:
@@ -77,7 +76,7 @@ class TileMap:
         return tiles
 
     def draw(self, surface, camera_x=0, camera_y=0):
-        """Draw visible layers on screen in proper order."""
+        """Draw visible layers on screen in order."""
         # Enforce correct draw order: props2 always on top of shrines
         draw_order = ["floor", "wall", "props", "shrines", "props2", "spawner"]
         for lname in draw_order:
@@ -98,7 +97,7 @@ class TileMap:
                             )
 
     def is_solid(self, rect):
-        """Check if a player's rect collides with solid tiles."""
+        """Check if a player's rect collides with solid tiles or steps off the floor."""
         foot_y = rect.bottom - 1
         points_to_check = [
             (rect.left + 2, foot_y),
@@ -112,13 +111,20 @@ class TileMap:
 
             # Out-of-bounds counts as solid
             if tile_x < 0 or tile_x >= self.width or tile_y < 0 or tile_y >= self.height:
-                print(f"[DEBUG] Out of bounds collision at {tile_x},{tile_y}")
+                # print(f"[DEBUG] Out of bounds collision at {tile_x},{tile_y}")
                 return True
 
+            # Check solid layers first
             for lname in self.SOLID_LAYERS:
                 layer = self.layers.get(lname, [])
                 if layer and layer[tile_y][tile_x]:
-                    print(f"[DEBUG] Collided with {lname} at ({tile_x},{tile_y})")
+                    # print(f"[DEBUG] Collided with {lname} at ({tile_x},{tile_y})")
                     return True
+
+            # Check if there is floor beneath; if not, it's "solid" (cannot walk off)
+            floor_layer = self.layers.get("floor", [])
+            if not floor_layer or not floor_layer[tile_y][tile_x]:
+                # print(f"[DEBUG] No floor at ({tile_x},{tile_y})")
+                return True
 
         return False
