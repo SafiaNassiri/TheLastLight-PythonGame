@@ -26,31 +26,36 @@ As you bring back light, the world slowly heals, but shadow creatures and enviro
 - [x] Create an editor.py for drawing Maps
 - [x] Basic player movement  
 - [x] Collectible orbs  
-- [ ] Shrine restoration  
-- [x] Mini-shrines and lore objects 
+- [X] Shrine restoration  
+- [x] Mini-shrines and lore objects
+- [x] Main Menu and End Scene
+- [x] Background and SFX sounds
 
 ## Project Structure
 ```text
 TheLastLight/
+├── __pycache__
 ├── asstes/
 │   ├── entities/
-│   │   ├── Knight/
-│   │   ├── Orb/
-│   │   ├── Satyr/
-│   │   ├── Skeleton/
+│   │   ├── Player/
 │   ├── sounds/
 │   ├──tiles/
 │   │   ├── Environment/
 │   │   ├── Props/
 ├── scripts/
-│   ├── _pycache_/
-│   ├── enemy.py
+│   ├── ui/
+│   ├── __pycache__/
+│   ├── lighting.py
+│   ├── message_manager.py
 │   ├── orb.py
 │   ├── player.py
 │   ├── shrine.py
+│   ├── sounds.py
 │   ├── Tilemap.py
+│   ├── utils.py
 ├── editor.py
 ├── main.py
+├── map.json
 └── README.md
 ```
 
