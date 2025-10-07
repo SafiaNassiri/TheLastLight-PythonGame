@@ -7,20 +7,8 @@ You are the last survivor, tasked with restoring the **Shrine of Light** by gath
 As you bring back light, the world slowly heals, but shadow creatures and environmental dangers stand in your way.  
 
 ## Gameplay
-- Explore a labyrinthine 2D world filled with **enemies, hazards, and secrets**.  
-- Collect **Light Orbs** and return them to the Shrine to expand its protective radius.  
-- Manage a **stamina bar** – sprinting, dashing, and attacking consume stamina, making exploration strategic.
-- Encounter different **enemy types**:
-  - Chasers – fast, fragile, relentless.  
-  - Patrol Guards – predictable routes, dangerous in groups.  
-  - Shadow Lurkers – invisible until close.  
-  - Light Drainers – temporarily weaken your light radius.  
-- Avoid **environmental hazards** like pits, spikes, collapsing floors, and moving walls.  
-- Unlock shortcuts with **keys and gates**, and find **mini-shrines** for temporary safe zones.  
-- Experience dynamic **sound design**:
-  - Heartbeat when enemies are near.  
-  - Whispers in the dark when light is low.  
-  - Music layers in new instruments as you restore more orbs.  
+- Explore a map 2D world filled with **enemies, hazards, and secrets**.  
+- Collect **Light Orbs** and return them to the Shrine to expand its protective radius.
 
 ## Features (Planned & Implemented)
 - [x] Create an editor.py for drawing Maps
