@@ -1840,6 +1840,24 @@
                 "id": 0
             },
             {
+                "x": 39,
+                "y": 5,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
+                "x": 40,
+                "y": 5,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
+                "x": 41,
+                "y": 5,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
                 "x": 66,
                 "y": 5,
                 "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
@@ -2176,6 +2194,24 @@
                 "id": 0
             },
             {
+                "x": 39,
+                "y": 6,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
+                "x": 40,
+                "y": 6,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
+                "x": 41,
+                "y": 6,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
                 "x": 66,
                 "y": 6,
                 "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
@@ -2510,6 +2546,24 @@
                 "y": 7,
                 "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
                 "id": 0
+            },
+            {
+                "x": 39,
+                "y": 7,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
+                "x": 40,
+                "y": 7,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
+            },
+            {
+                "x": 41,
+                "y": 7,
+                "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
+                "id": 42
             },
             {
                 "x": 66,
@@ -4207,7 +4261,7 @@
                 "x": 68,
                 "y": 12,
                 "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
-                "id": 17
+                "id": 9
             },
             {
                 "x": 69,
@@ -15752,6 +15806,12 @@
                 "y": 56,
                 "sheet": "assets/tiles\\Environment\\TX Tileset Grass.png",
                 "id": 19
+            },
+            {
+                "x": 9,
+                "y": 57,
+                "sheet": "assets/tiles\\Environment\\TX Plant.png",
+                "id": 0
             },
             {
                 "x": 11,

@@ -147,13 +147,10 @@ load_map_sparse()
 
 # Help
 help_lines = [
-    "[1..5] Switch sheet",
     "[A/W/S/D] Move camera",
     "[Mouse wheel] Zoom in/out",
-    "[Z] Reset zoom | [R] Recenter camera",
     "[T] Toggle spawn placement | [Y] Cycle spawn type",
     "[L] Switch layer | [C] Next sheet",
-    "[F11] Toggle fullscreen",
     "Left Click: Place tile/spawn",
     "Right Click: Erase",
     "[P] Save map",
